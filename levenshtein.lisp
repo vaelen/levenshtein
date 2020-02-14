@@ -13,29 +13,35 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-(defun levenshtein (string1 string2 &key (limit -1) (method 'loop) (distance 0))
-  "Returns the levenshtein distance between two strings."
-  (cond ((equal method 'simple) (levenshtein-simple string1 string2 limit distance))
-        (t (levenshtein-loop string1 string2 limit distance))))
+(defpackage :levenshtein
+  (:use :common-lisp)
+  (:export
+   #:distance
+   #:simple
+   #:iterate
+   #:test
+   #:main))
 
-(defun levenshtein-simple (s1 s2 &optional (limit -1) (dist 0))
+(in-package :levenshtein)
+
+(defun simple (s1 s2 &optional (limit -1) (dist 0))
   "Returns the levenshtein distance between two strings using recursion."
-  (cond ((not (listp s1)) (levenshtein-simple (coerce s1 'list) s2 limit dist)) ; Coerce inputs to lists
-        ((not (listp s2)) (levenshtein-simple s1 (coerce s2 'list) limit dist)) ; Coerce inputs to lists
-        ((and (> limit 0) (> dist limit)) dist)                                 ; If the limit has been passed, return
-        ((= (length s1) 0) (+ (length s2) dist))                                ; When the shorter string ends
-        ((= (length s2) 0) (+ (length s1) dist))                                ;     add the remaining character count
+  (cond ((not (listp s1)) (simple (coerce s1 'list) s2 limit dist))  ; Coerce inputs to lists
+        ((not (listp s2)) (simple s1 (coerce s2 'list) limit dist))  ; Coerce inputs to lists
+        ((and (> limit 0) (> dist limit)) dist)                      ; If the limit has been passed, return
+        ((= (length s1) 0) (+ (length s2) dist))                     ; When the shorter string ends
+        ((= (length s2) 0) (+ (length s1) dist))                     ;     add the remaining character count
         ((equal (first s1) (first s2))
-         (levenshtein-simple (rest s1) (rest s2) limit dist))                   ; Match
+         (simple (rest s1) (rest s2) limit dist))                    ; Match
         (t (min
-            (levenshtein-simple (rest s1) (rest s2) limit (1+ dist))            ; Substitution
-            (levenshtein-simple s1 (rest s2) limit (1+ dist))                   ; Insertion
-            (levenshtein-simple (rest s1) s2 limit (1+ dist))))))               ; Deletion
+            (simple (rest s1) (rest s2) limit (1+ dist))             ; Substitution
+            (simple s1 (rest s2) limit (1+ dist))                    ; Insertion
+            (simple (rest s1) s2 limit (1+ dist))))))                ; Deletion
 
-(defun levenshtein-loop (string1 string2 &optional (limit -1) (dist 0))
+(defun iterate (string1 string2 &optional (limit -1) (dist 0))
   "Returns the levenshtein distance between two strings using iteration."
-  (if (not (listp string1)) (setf string1 (coerce string1 'list)))              ; Coerce inputs to lists
-  (if (not (listp string2)) (setf string2 (coerce string2 'list)))              ; Coerce inputs to lists
+  (if (not (listp string1)) (setf string1 (coerce string1 'list)))   ; Coerce inputs to lists
+  (if (not (listp string2)) (setf string2 (coerce string2 'list)))   ; Coerce inputs to lists
   (let ((queue (list (vector string1 string2 dist)))
         (result nil))
     (flet ((add-to-queue (s1 s2 d)
@@ -59,10 +65,22 @@
                        (add-to-queue (rest s1) s2 (1+ d))))))         ; Deletion
          finally (return result)))))
 
-(defun test-levenshtein (string1 string2)
-  "Tests the execution time of all levenshten implementations"
-  (loop for method in '(simple loop) do
+(defun distance (string1 string2 &key (limit -1) (method #'iterate) (distance 0))
+  "Returns the levenshtein distance between two strings."
+  (funcall method string1 string2 limit distance))
+
+(defun test (string1 string2)
+  "Tests the execution time of all levenshtein implementations"
+  (loop for method in (list #'simple #'iterate) do
        (progn
          (format 't "Method: ~A~%" method)
          (format 't "Result: ~A~%~%~%"
-                 (time (levenshtein string1 string2 :method method))))))
+                 (time (distance string1 string2 :method method))))))
+
+(defun main ()
+  (if (< (length (uiop:command-line-arguments)) 2)
+      (format t "Usage: levenshtein <first word> <second word>~%")
+      (let ((d (distance (first (uiop:command-line-arguments))
+                (second (uiop:command-line-arguments)))))
+        (format t "~A~%" d)
+        d)))
