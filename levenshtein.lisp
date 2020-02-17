@@ -69,14 +69,6 @@
   "Returns the levenshtein distance between two strings."
   (funcall method string1 string2 limit distance))
 
-(defun test (string1 string2)
-  "Tests the execution time of all levenshtein implementations"
-  (loop for method in (list #'simple #'iterate) do
-       (progn
-         (format 't "Method: ~A~%" method)
-         (format 't "Result: ~A~%~%~%"
-                 (time (distance string1 string2 :method method))))))
-
 (defun main ()
   (if (< (length (uiop:command-line-arguments)) 2)
       (format t "Usage: levenshtein <first word> <second word>~%")
