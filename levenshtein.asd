@@ -11,4 +11,4 @@
 (defsystem "levenshtein/tests"
   :depends-on ("levenshtein")
   :components ((:file "levenshtein-tests"))
-  :perform (test-op (o c) (levenshtein-tests:run)))
+  :perform (test-op (o c) (uiop:symbol-call :levenshtein-tests '#:run)))
